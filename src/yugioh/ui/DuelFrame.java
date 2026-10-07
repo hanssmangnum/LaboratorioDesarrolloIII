@@ -7,40 +7,42 @@ import yugioh.logic.Duel;
 import yugioh.model.Card;
 import yugioh.model.Position;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.SwingConstants;
+import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import java.awt.BorderLayout;
-import java.awt.Color;
+import javax.swing.Timer;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GridLayout;
+import java.awt.GraphicsEnvironment;
+import java.awt.Rectangle;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 
 /**
  * Ventana principal del duelo.
+ * <p>
+ * El diseño visual está en {@code DuelFrame.form} (GUI Designer de IntelliJ); por eso los
+ * componentes enlazados al formulario no se crean con {@code new}.
  * <p>
  * La carga de cartas e imágenes se hace en un {@link SwingWorker} para no bloquear
  * el hilo de la interfaz (EDT). La lógica del duelo vive en {@link Duel}; esta clase
@@ -55,20 +57,33 @@ public class DuelFrame extends JFrame implements BattleListener {
     /** Límite de peticiones al buscar 6 cartas distintas (evita bucles infinitos). */
     private static final int MAX_FETCHES = 30;
     private static final ImageIcon SMALL_BACK = CardPanel.createCardBack(48, 70);
+    private static final int FIELD_CARD_WIDTH = 80;
+    private static final int FIELD_CARD_HEIGHT = 117;
+    /** Pausa entre mensajes del duelo en el log, para que se puedan leer uno a uno. */
+    private static final int LOG_DELAY_MS = 1000;
 
     private final YgoApiClient api = new YgoApiClient();
     private final Random random = new Random();
 
-    private final JLabel scoreLabel = new JLabel("Jugador 0 - 0 Máquina", SwingConstants.CENTER);
-    private final JLabel turnLabel = new JLabel(" ", SwingConstants.CENTER);
-    private final List<CardPanel> playerCardPanels = new ArrayList<>();
-    private final List<JLabel> aiBackLabels = new ArrayList<>();
-    private final CardPanel fieldPlayer = new CardPanel();
-    private final CardPanel fieldAi = new CardPanel();
-    private final JTextArea logArea = new JTextArea();
-    private final JButton startButton = new JButton("Iniciar duelo");
-    private final JButton chooseButton = new JButton("Elegir carta");
-    private final JComboBox<Position> positionCombo = new JComboBox<>(Position.values());
+    // Componentes del formulario (los crea el GUI Designer a partir de DuelFrame.form)
+    private JPanel mainPanel;
+    private JLabel scoreLabel;
+    private JLabel aiBack1;
+    private JLabel aiBack2;
+    private JLabel aiBack3;
+    private CardPanel playerCard1;
+    private CardPanel playerCard2;
+    private CardPanel playerCard3;
+    private CardPanel fieldPlayer;
+    private CardPanel fieldAi;
+    private JTextPane logArea;
+    private JButton startButton;
+    private JButton changeDeckButton;
+    private JButton attackButton;
+    private JButton defendButton;
+
+    private final List<CardPanel> playerCardPanels;
+    private final List<JLabel> aiBackLabels;
 
     private List<Card> playerCards = new ArrayList<>();
     private List<Card> aiCards = new ArrayList<>();
@@ -76,115 +91,50 @@ public class DuelFrame extends JFrame implements BattleListener {
     private Duel duel;
     private State state;
 
+    /** Mensaje pendiente del log; {@code paced} = esperar LOG_DELAY_MS antes del siguiente. */
+    private record LogEntry(String text, boolean paced) { }
+
+    private final Queue<LogEntry> logQueue = new ArrayDeque<>();
+    private final Timer logTimer = new Timer(LOG_DELAY_MS, e -> showNextLog());
+    /** Resultado del duelo que se muestra en un diálogo cuando el log termina de escribirse. */
+    private String pendingResult;
+
     public DuelFrame() {
         super("Yu-Gi-Oh! Duel Lite");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        buildLayout();
+        setContentPane(mainPanel);
+        playerCardPanels = Arrays.asList(playerCard1, playerCard2, playerCard3);
+        aiBackLabels = Arrays.asList(aiBack1, aiBack2, aiBack3);
+        // Las cartas del combate van más pequeñas para que la ventana quepa en pantallas bajas
+        fieldAi.setImageSize(FIELD_CARD_WIDTH, FIELD_CARD_HEIGHT);
+        fieldPlayer.setImageSize(FIELD_CARD_WIDTH, FIELD_CARD_HEIGHT);
+        logTimer.setRepeats(false);
         registerListeners();
-        setMinimumSize(new Dimension(1150, 700));
+        pack();
+        // Nunca más grande que el área útil de la pantalla (sin la barra de tareas)
+        Rectangle screen = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+        setSize(Math.min(getWidth(), screen.width), Math.min(getHeight(), screen.height));
         setLocationRelativeTo(null);
         loadCards();
     }
 
-    // ------------------------------------------------------------------ construcción de la UI
-
-    private void buildLayout() {
-        JPanel root = new JPanel(new BorderLayout(10, 10));
-        root.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        root.setBackground(new Color(40, 44, 52));
-        setContentPane(root);
-
-        // Encabezado: título, marcador y turno
-        JLabel title = new JLabel("Yu-Gi-Oh! Duel Lite", SwingConstants.CENTER);
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 24f));
-        title.setForeground(new Color(240, 200, 90));
-        scoreLabel.setFont(scoreLabel.getFont().deriveFont(Font.BOLD, 18f));
-        scoreLabel.setForeground(Color.WHITE);
-        turnLabel.setFont(turnLabel.getFont().deriveFont(14f));
-        turnLabel.setForeground(new Color(200, 210, 230));
-        JPanel header = new JPanel(new GridLayout(0, 1));
-        header.setOpaque(false);
-        header.add(title);
-        header.add(scoreLabel);
-        header.add(turnLabel);
-        root.add(header, BorderLayout.NORTH);
-
-        // Mano de la máquina (oculta)
-        JPanel aiHand = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 4));
-        aiHand.setOpaque(false);
-        aiHand.setBorder(titled("Mano de la máquina"));
-        for (int i = 0; i < Duel.CARDS_PER_PLAYER; i++) {
-            JLabel back = new JLabel();
-            back.setPreferredSize(new Dimension(48, 70));
-            aiBackLabels.add(back);
-            aiHand.add(back);
-        }
-
-        // Mano del jugador (seleccionable)
-        JPanel playerHand = new JPanel(new GridLayout(1, Duel.CARDS_PER_PLAYER, 10, 0));
-        playerHand.setOpaque(false);
-        playerHand.setBorder(titled("Tu mano (haz clic en una carta)"));
-        for (int i = 0; i < Duel.CARDS_PER_PLAYER; i++) {
-            CardPanel panel = new CardPanel();
-            playerCardPanels.add(panel);
-            playerHand.add(panel);
-        }
-
-        // Campo de batalla: última carta jugada por cada lado
-        JLabel vs = new JLabel("VS", SwingConstants.CENTER);
-        vs.setFont(vs.getFont().deriveFont(Font.BOLD, 26f));
-        vs.setForeground(new Color(240, 200, 90));
-        JPanel field = new JPanel(new BorderLayout(10, 0));
-        field.setOpaque(false);
-        field.setBorder(titled("Campo de batalla"));
-        field.add(labeled("Tú", fieldPlayer), BorderLayout.WEST);
-        field.add(vs, BorderLayout.CENTER);
-        field.add(labeled("Máquina", fieldAi), BorderLayout.EAST);
-
-        JPanel board = new JPanel(new BorderLayout(10, 10));
-        board.setOpaque(false);
-        board.add(aiHand, BorderLayout.NORTH);
-        board.add(playerHand, BorderLayout.CENTER);
-        board.add(field, BorderLayout.EAST);
-        root.add(board, BorderLayout.CENTER);
-
-        // Log de batalla desplazable
-        logArea.setEditable(false);
-        logArea.setLineWrap(true);
-        logArea.setWrapStyleWord(true);
-        logArea.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        JScrollPane logScroll = new JScrollPane(logArea);
-        logScroll.setPreferredSize(new Dimension(330, 0));
-        logScroll.setBorder(titled("Log de batalla"));
-        logScroll.setOpaque(false);
-        logScroll.getViewport().setOpaque(true);
-        root.add(logScroll, BorderLayout.EAST);
-
-        // Controles
-        JLabel positionLabel = new JLabel("Posición:");
-        positionLabel.setForeground(Color.WHITE);
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
-        controls.setOpaque(false);
-        controls.add(positionLabel);
-        controls.add(positionCombo);
-        controls.add(chooseButton);
-        controls.add(Box.createHorizontalStrut(30));
-        controls.add(startButton);
-        root.add(controls, BorderLayout.SOUTH);
-    }
+    // ------------------------------------------------------------------ eventos de la UI
 
     private void registerListeners() {
-        // ActionListener del botón principal: iniciar duelo, reintentar carga o nuevo duelo
+        // "Iniciar duelo": empieza el duelo; al terminar uno, juega la revancha con las mismas cartas
         startButton.addActionListener(e -> {
-            if (state == State.READY) {
-                startDuel();
-            } else if (state == State.LOAD_FAILED || state == State.FINISHED) {
-                loadCards();
+            if (state == State.FINISHED) {
+                showHands();
             }
+            startDuel();
         });
 
-        // ActionListener de "Elegir carta": juega el turno con la carta seleccionada
-        chooseButton.addActionListener(e -> playSelectedCard());
+        // "Cambiar mazo": pide 6 cartas nuevas a la API (también sirve para reintentar si falló)
+        changeDeckButton.addActionListener(e -> loadCards());
+
+        // "Atacar" / "Defender": juegan la carta seleccionada en esa posición
+        attackButton.addActionListener(e -> playSelectedCard(Position.ATAQUE));
+        defendButton.addActionListener(e -> playSelectedCard(Position.DEFENSA));
 
         // Clic sobre una carta de la mano para seleccionarla
         for (CardPanel panel : playerCardPanels) {
@@ -206,8 +156,7 @@ public class DuelFrame extends JFrame implements BattleListener {
         playerCards = new ArrayList<>();
         aiCards = new ArrayList<>();
         images = new HashMap<>();
-        scoreLabel.setText("Jugador 0 - 0 Máquina");
-        turnLabel.setText("Cargando cartas desde YGOProDeck...");
+        showScore(0, 0);
         for (CardPanel panel : playerCardPanels) {
             panel.clear("Cargando...");
         }
@@ -216,7 +165,7 @@ public class DuelFrame extends JFrame implements BattleListener {
         }
         fieldPlayer.clear(" ");
         fieldAi.clear(" ");
-        log("=== Cargando cartas desde la API ===");
+        logNow("**=== Cargando cartas desde la API ===**");
 
         new SwingWorker<List<Card>, String>() {
             private final Map<Integer, ImageIcon> loadedImages = new HashMap<>();
@@ -237,7 +186,7 @@ public class DuelFrame extends JFrame implements BattleListener {
                     cards.add(card);
                     String owner = cards.size() <= Duel.CARDS_PER_PLAYER ? "Jugador" : "Máquina";
                     publish("Carta " + cards.size() + "/" + TOTAL_CARDS + " (" + owner + ") cargada"
-                            + (owner.equals("Jugador") ? ": " + card : ""));
+                            + (owner.equals("Jugador") ? ": **" + card + "**" : ""));
                     try {
                         loadedImages.put(card.getId(), CardPanel.scale(api.downloadImage(card.getImageUrl())));
                     } catch (ApiException e) {
@@ -250,7 +199,7 @@ public class DuelFrame extends JFrame implements BattleListener {
 
             @Override
             protected void process(List<String> messages) {
-                messages.forEach(DuelFrame.this::log);
+                messages.forEach(DuelFrame.this::logNow);
             }
 
             @Override
@@ -276,6 +225,13 @@ public class DuelFrame extends JFrame implements BattleListener {
     private void onCardsLoaded(List<Card> cards) {
         playerCards = new ArrayList<>(cards.subList(0, Duel.CARDS_PER_PLAYER));
         aiCards = new ArrayList<>(cards.subList(Duel.CARDS_PER_PLAYER, TOTAL_CARDS));
+        showHands();
+        logNow("Cartas listas. Pulsa **Iniciar duelo**.");
+        setState(State.READY);
+    }
+
+    /** Muestra las 3 cartas del jugador y los reversos de la máquina, y limpia el campo. */
+    private void showHands() {
         for (int i = 0; i < playerCardPanels.size(); i++) {
             Card card = playerCards.get(i);
             playerCardPanels.get(i).showCard(card, images.get(card.getId()));
@@ -283,14 +239,14 @@ public class DuelFrame extends JFrame implements BattleListener {
         for (JLabel back : aiBackLabels) {
             back.setIcon(SMALL_BACK);
         }
-        log("Cartas listas. Pulsa \"Iniciar duelo\".");
-        turnLabel.setText("Cartas listas. Pulsa \"Iniciar duelo\" para comenzar.");
-        setState(State.READY);
+        fieldPlayer.clear(" ");
+        fieldAi.clear(" ");
+        showScore(0, 0);
     }
 
     private void onLoadFailed(String message) {
-        log("ERROR: " + message);
-        turnLabel.setText("No se pudieron cargar las cartas.");
+        logNow("**ERROR:** " + message);
+        logNow("Pulsa **Cambiar mazo** para reintentar.");
         for (CardPanel panel : playerCardPanels) {
             panel.clear("Sin carta");
         }
@@ -311,21 +267,43 @@ public class DuelFrame extends JFrame implements BattleListener {
         duel.addBattleListener(this);
         setState(State.PLAYING);
         log("");
-        log("=== ¡Comienza el duelo! Primero en ganar " + Duel.ROUNDS_TO_WIN + " rondas ===");
+        log("**=== ¡Comienza el duelo! Primero en ganar " + Duel.ROUNDS_TO_WIN + " rondas ===**");
         duel.start();
     }
 
     private void selectCard(CardPanel panel) {
-        if (state != State.PLAYING || panel.isUsed() || panel.getCard() == null) {
+        // Mientras el log sigue escribiendo el turno anterior no se puede elegir carta
+        if (state != State.PLAYING || isLogBusy() || panel.isUsed() || panel.getCard() == null) {
             return;
         }
         for (CardPanel p : playerCardPanels) {
             p.setSelected(p == panel);
         }
-        chooseButton.setEnabled(true);
+        // Tu carta pasa al combate boca arriba; la de la máquina queda boca abajo hasta el combate
+        Card card = panel.getCard();
+        fieldPlayer.showCard(card, images.get(card.getId()));
+        fieldPlayer.setFooter("Tu elección");
+        fieldAi.showHidden();
+        fieldAi.setFooter("Boca abajo");
+        updateButtons();
     }
 
-    private void playSelectedCard() {
+    /**
+     * Habilita los botones según el estado. Mientras el log escribe mensajes todos esperan.
+     * Atacar necesita una carta elegida; Defender además solo vale cuando ataca la máquina,
+     * porque el atacante siempre juega en Ataque.
+     */
+    private void updateButtons() {
+        boolean free = !isLogBusy();
+        boolean cardSelected = state == State.PLAYING
+                && playerCardPanels.stream().anyMatch(CardPanel::isSelected);
+        startButton.setEnabled(free && (state == State.READY || state == State.FINISHED));
+        changeDeckButton.setEnabled(free && state != State.LOADING && state != State.PLAYING);
+        attackButton.setEnabled(free && cardSelected);
+        defendButton.setEnabled(free && cardSelected && !duel.isPlayerAttacking());
+    }
+
+    private void playSelectedCard(Position position) {
         CardPanel selected = null;
         for (CardPanel p : playerCardPanels) {
             if (p.isSelected()) {
@@ -338,8 +316,8 @@ public class DuelFrame extends JFrame implements BattleListener {
             return;
         }
         selected.setUsed(true);
-        chooseButton.setEnabled(false);
-        duel.playTurn(selected.getCard(), (Position) positionCombo.getSelectedItem());
+        updateButtons();
+        duel.playTurn(selected.getCard(), position);
     }
 
     // ------------------------------------------------------------------ BattleListener
@@ -349,15 +327,13 @@ public class DuelFrame extends JFrame implements BattleListener {
     @Override
     public void onTurnStarted(int turnNumber, boolean playerAttacks) {
         log("");
-        log("--- Turno " + turnNumber + ": ataca " + (playerAttacks ? "el Jugador" : "la Máquina") + " ---");
+        log("**--- Turno " + turnNumber + ": ataca " + (playerAttacks ? "el Jugador" : "la Máquina") + " ---**");
         if (playerAttacks) {
-            positionCombo.setSelectedItem(Position.ATAQUE);
-            positionCombo.setEnabled(false);
-            turnLabel.setText("Turno " + turnNumber + ": te toca ATACAR. Elige una carta.");
+            log("» Te toca **ATACAR**: elige una carta y pulsa **Atacar**.");
         } else {
-            positionCombo.setEnabled(true);
-            turnLabel.setText("Turno " + turnNumber + ": la máquina ataca. Elige carta y posición (Ataque o Defensa).");
+            log("» Ataca **la máquina**: elige una carta y pulsa **Atacar** o **Defender**.");
         }
+        updateButtons();
     }
 
     @Override
@@ -374,15 +350,15 @@ public class DuelFrame extends JFrame implements BattleListener {
 
     @Override
     public void onTurn(String playerCard, String aiCard, String winner) {
-        log("Jugador juega: " + playerCard);
-        log("Máquina juega: " + aiCard);
-        log(Duel.DRAW.equals(winner) ? "Resultado: empate, nadie suma punto." : "Gana el turno: " + winner);
+        log("Jugador juega: **" + playerCard + "**");
+        log("Máquina juega: **" + aiCard + "**");
+        log(Duel.DRAW.equals(winner) ? "Resultado: **empate**, nadie suma punto." : "Gana el turno: **" + winner + "**");
     }
 
     @Override
     public void onScoreChanged(int playerScore, int aiScore) {
-        scoreLabel.setText("Jugador " + playerScore + " - " + aiScore + " Máquina");
-        log("Marcador: Jugador " + playerScore + " - " + aiScore + " Máquina");
+        showScore(playerScore, aiScore);
+        log("Marcador: **Jugador " + playerScore + " - " + aiScore + " Máquina**");
     }
 
     @Override
@@ -397,70 +373,94 @@ public class DuelFrame extends JFrame implements BattleListener {
             message = "El duelo terminó en empate.";
         }
         log("");
-        log("=== FIN DEL DUELO: " + message + " ===");
-        turnLabel.setText(message + " Pulsa \"Nuevo duelo\" para jugar otra vez.");
-        // Se muestra después de que Swing pinte el último turno
-        SwingUtilities.invokeLater(() ->
-                JOptionPane.showMessageDialog(this, message, "Resultado del duelo", JOptionPane.INFORMATION_MESSAGE));
+        log("**=== FIN DEL DUELO: " + message + " ===**");
+        log("**Iniciar duelo** = revancha, **Cambiar mazo** = cartas nuevas.");
+        // El diálogo sale cuando el log termina de escribir el último turno (ver onLogIdle)
+        pendingResult = message;
     }
 
     // ------------------------------------------------------------------ utilidades
 
     private void setState(State newState) {
         state = newState;
-        switch (newState) {
-            case LOADING:
-                startButton.setText("Cargando cartas...");
-                startButton.setEnabled(false);
-                break;
-            case LOAD_FAILED:
-                startButton.setText("Reintentar carga");
-                startButton.setEnabled(true);
-                break;
-            case READY:
-                startButton.setText("Iniciar duelo");
-                startButton.setEnabled(true);
-                break;
-            case PLAYING:
-                startButton.setText("Duelo en curso");
-                startButton.setEnabled(false);
-                break;
-            case FINISHED:
-                startButton.setText("Nuevo duelo");
-                startButton.setEnabled(true);
-                break;
-        }
         boolean playing = newState == State.PLAYING;
-        chooseButton.setEnabled(false); // se habilita al seleccionar una carta
-        positionCombo.setEnabled(playing);
         for (CardPanel p : playerCardPanels) {
             p.setCursor(playing ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR) : Cursor.getDefaultCursor());
             if (!playing) {
                 p.setSelected(false);
             }
         }
+        updateButtons();
     }
 
+    /** Marcador entre las dos cartas del combate, con el formato del diseño ("Jugador 0 VS 0 Máquina"). */
+    private void showScore(int playerScore, int aiScore) {
+        scoreLabel.setText("Jugador " + playerScore + " VS " + aiScore + " Máquina");
+    }
+
+    // ------------------------------------------------------------------ log con pausas y negrilla
+
+    /** Mensaje del duelo: se escribe tras los anteriores y hace esperar 1 s al siguiente. */
     private void log(String message) {
-        logArea.append(message + "\n");
-        logArea.setCaretPosition(logArea.getDocument().getLength());
+        enqueueLog(message, !message.isEmpty());
     }
 
-    private static javax.swing.border.Border titled(String title) {
-        javax.swing.border.TitledBorder border = BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(110, 115, 130)), title);
-        border.setTitleColor(new Color(220, 225, 235));
-        return border;
+    /** Mensaje sin pausa (progreso de carga, errores). */
+    private void logNow(String message) {
+        enqueueLog(message, false);
     }
 
-    private static JPanel labeled(String text, CardPanel card) {
-        JLabel label = new JLabel(text, SwingConstants.CENTER);
-        label.setForeground(Color.WHITE);
-        label.setFont(label.getFont().deriveFont(Font.BOLD));
-        JPanel panel = new JPanel(new BorderLayout(0, 4));
-        panel.setOpaque(false);
-        panel.add(label, BorderLayout.NORTH);
-        panel.add(card, BorderLayout.CENTER);
-        return panel;
+    private void enqueueLog(String message, boolean paced) {
+        logQueue.add(new LogEntry(message, paced));
+        if (!logTimer.isRunning()) {
+            showNextLog();
+        }
+        updateButtons();
+    }
+
+    /** Escribe los mensajes pendientes; se detiene 1 s después de cada mensaje con pausa. */
+    private void showNextLog() {
+        LogEntry entry;
+        while ((entry = logQueue.poll()) != null) {
+            appendLog(entry.text());
+            if (entry.paced()) {
+                logTimer.restart();
+                return;
+            }
+        }
+        onLogIdle();
+    }
+
+    private boolean isLogBusy() {
+        return logTimer.isRunning() || !logQueue.isEmpty();
+    }
+
+    /** El log terminó de escribir: se reactivan los botones y, si el duelo acabó, se anuncia. */
+    private void onLogIdle() {
+        updateButtons();
+        if (pendingResult != null) {
+            String message = pendingResult;
+            pendingResult = null;
+            SwingUtilities.invokeLater(() ->
+                    JOptionPane.showMessageDialog(this, message, "Resultado del duelo", JOptionPane.INFORMATION_MESSAGE));
+        }
+    }
+
+    /** Agrega una línea al log; el texto entre ** y ** se escribe en negrilla. */
+    private void appendLog(String message) {
+        StyledDocument doc = logArea.getStyledDocument();
+        SimpleAttributeSet normal = new SimpleAttributeSet();
+        SimpleAttributeSet bold = new SimpleAttributeSet();
+        StyleConstants.setBold(bold, true);
+        String[] parts = message.split("\\*\\*", -1);
+        try {
+            for (int i = 0; i < parts.length; i++) {
+                doc.insertString(doc.getLength(), parts[i], i % 2 == 1 ? bold : normal);
+            }
+            doc.insertString(doc.getLength(), "\n", normal);
+        } catch (BadLocationException e) {
+            throw new IllegalStateException(e); // no ocurre: siempre se inserta al final
+        }
+        logArea.setCaretPosition(doc.getLength());
     }
 }

@@ -15,7 +15,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GradientPaint;
 import java.awt.Graphics2D;
-import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 
@@ -44,6 +44,8 @@ public class CardPanel extends JPanel {
     private Card card;
     private boolean selected;
     private boolean used;
+    private int imageWidth = IMAGE_WIDTH;
+    private int imageHeight = IMAGE_HEIGHT;
 
     public CardPanel() {
         super(new BorderLayout(0, 4));
@@ -56,11 +58,12 @@ public class CardPanel extends JPanel {
         footerLabel.setFont(footerLabel.getFont().deriveFont(Font.ITALIC, 11f));
         footerLabel.setForeground(new Color(120, 60, 0));
 
-        JPanel info = new JPanel(new GridLayout(0, 1));
+        // BorderLayout (no GridLayout) para que un nombre de 2 líneas no agrande las otras filas
+        JPanel info = new JPanel(new BorderLayout());
         info.setOpaque(false);
-        info.add(nameLabel);
-        info.add(statsLabel);
-        info.add(footerLabel);
+        info.add(nameLabel, BorderLayout.NORTH);
+        info.add(statsLabel, BorderLayout.CENTER);
+        info.add(footerLabel, BorderLayout.SOUTH);
 
         add(imageLabel, BorderLayout.CENTER);
         add(info, BorderLayout.SOUTH);
@@ -72,7 +75,7 @@ public class CardPanel extends JPanel {
         this.card = card;
         this.used = false;
         this.selected = false;
-        imageLabel.setIcon(image);
+        imageLabel.setIcon(fit(image));
         imageLabel.setText(image == null ? "<html><center>Imagen no<br>disponible</center></html>" : "");
         nameLabel.setText(wrap(card.getName()));
         nameLabel.setToolTipText(card.getName() + " - " + card.getType());
@@ -84,7 +87,7 @@ public class CardPanel extends JPanel {
     /** Muestra el reverso de una carta (cartas ocultas de la máquina). */
     public void showHidden() {
         this.card = null;
-        imageLabel.setIcon(CARD_BACK);
+        imageLabel.setIcon(fit(CARD_BACK));
         imageLabel.setText("");
         nameLabel.setText("???");
         nameLabel.setToolTipText(null);
@@ -105,6 +108,14 @@ public class CardPanel extends JPanel {
         statsLabel.setText(" ");
         footerLabel.setText(" ");
         refresh();
+    }
+
+    /** Cambia el tamaño de la imagen (por ejemplo, cartas más pequeñas en el campo de combate). */
+    public void setImageSize(int width, int height) {
+        imageWidth = width;
+        imageHeight = height;
+        imageLabel.setPreferredSize(new Dimension(width, height));
+        revalidate();
     }
 
     public void setFooter(String text) {
@@ -155,10 +166,18 @@ public class CardPanel extends JPanel {
         return new ImageIcon(scaled);
     }
 
+    /** Ajusta la imagen al tamaño de este panel si es distinto del tamaño estándar. */
+    private ImageIcon fit(ImageIcon image) {
+        if (image == null || (image.getIconWidth() == imageWidth && image.getIconHeight() == imageHeight)) {
+            return image;
+        }
+        return new ImageIcon(image.getImage().getScaledInstance(imageWidth, imageHeight, Image.SCALE_SMOOTH));
+    }
+
     /** Nombre con salto de línea automático (los nombres de cartas pueden ser largos). */
-    private static String wrap(String text) {
+    private String wrap(String text) {
         String escaped = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-        return "<html><div style='text-align:center;width:" + (IMAGE_WIDTH - 30) + "px'>"
+        return "<html><div style='text-align:center;width:" + Math.max(imageWidth - 30, 100) + "px'>"
                 + escaped + "</div></html>";
     }
 

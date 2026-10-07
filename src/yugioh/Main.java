@@ -5,9 +5,7 @@ import yugioh.ui.DuelFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
-/**
- * Punto de entrada de Yu-Gi-Oh! Duel Lite.
- */
+
 public class Main {
 
     public static void main(String[] args) {

@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="yugioh.ui.DuelFrame">
+  <grid id="root1" binding="mainPanel" layout-manager="GridLayoutManager" row-count="2" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="10" vgap="10">
+    <margin top="10" left="10" bottom="10" right="10"/>
+    <constraints>
+      <xy x="20" y="20" width="1200" height="700"/>
+    </constraints>
+    <properties>
+      <background color="-14144460"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <grid id="mesa1" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="0" vgap="10">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <opaque value="false"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <grid id="aihnd" layout-manager="GridLayoutManager" row-count="1" column-count="5" same-size-horizontally="false" same-size-vertically="false" hgap="20" vgap="4">
+            <margin top="6" left="6" bottom="6" right="6"/>
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <opaque value="false"/>
+            </properties>
+            <border type="line" title="Cartas de la máquina">
+              <title-color color="-2301461"/>
+              <color color="-9538686"/>
+            </border>
+            <children>
+              <hspacer id="aisp1">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                </constraints>
+              </hspacer>
+              <component id="aib01" class="javax.swing.JLabel" binding="aiBack1">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false">
+                    <minimum-size width="48" height="70"/>
+                    <preferred-size width="48" height="70"/>
+                  </grid>
+                </constraints>
+                <properties>
+                  <text value=""/>
+                </properties>
+              </component>
+              <component id="aib02" class="javax.swing.JLabel" binding="aiBack2">
+                <constraints>
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false">
+                    <minimum-size width="48" height="70"/>
+                    <preferred-size width="48" height="70"/>
+                  </grid>
+                </constraints>
+                <properties>
+                  <text value=""/>
+                </properties>
+              </component>
+              <component id="aib03" class="javax.swing.JLabel" binding="aiBack3">
+                <constraints>
+                  <grid row="0" column="3" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false">
+                    <minimum-size width="48" height="70"/>
+                    <preferred-size width="48" height="70"/>
+                  </grid>
+                </constraints>
+                <properties>
+                  <text value=""/>
+                </properties>
+              </component>
+              <hspacer id="aisp2">
+                <constraints>
+                  <grid row="0" column="4" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                </constraints>
+              </hspacer>
+            </children>
+          </grid>
+          <grid id="plhnd" layout-manager="GridLayoutManager" row-count="1" column-count="3" same-size-horizontally="true" same-size-vertically="false" hgap="12" vgap="0">
+            <margin top="6" left="6" bottom="6" right="6"/>
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <opaque value="false"/>
+            </properties>
+            <border type="line" title="Tus cartas (haz clic en una para elegirla)">
+              <title-color color="-2301461"/>
+              <color color="-9538686"/>
+            </border>
+            <children>
+              <component id="pc001" class="yugioh.ui.CardPanel" binding="playerCard1">
+                <constraints>
+                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties/>
+              </component>
+              <component id="pc002" class="yugioh.ui.CardPanel" binding="playerCard2">
+                <constraints>
+                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties/>
+              </component>
+              <component id="pc003" class="yugioh.ui.CardPanel" binding="playerCard3">
+                <constraints>
+                  <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
+                </constraints>
+                <properties/>
+              </component>
+            </children>
+          </grid>
+        </children>
+      </grid>
+      <grid id="comb1" layout-manager="GridLayoutManager" row-count="5" column-count="1" same-size-horizontally="false" same-size-vertically="false" hgap="0" vgap="4">
+        <margin top="6" left="10" bottom="6" right="10"/>
+        <constraints>
+          <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="0" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <opaque value="false"/>
+        </properties>
+        <border type="line" title="Combate">
+          <title-color color="-2301461"/>
+          <color color="-9538686"/>
+        </border>
+        <children>
+          <component id="fl002" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font style="1"/>
+              <foreground color="-1"/>
+              <text value="Máquina"/>
+            </properties>
+          </component>
+          <component id="fa001" class="yugioh.ui.CardPanel" binding="fieldAi">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties/>
+          </component>
+          <component id="fp001" class="yugioh.ui.CardPanel" binding="fieldPlayer">
+            <constraints>
+              <grid row="3" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties/>
+          </component>
+          <component id="fl001" class="javax.swing.JLabel">
+            <constraints>
+              <grid row="4" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font style="1"/>
+              <foreground color="-1"/>
+              <text value="Jugador"/>
+            </properties>
+          </component>
+          <component id="scor1" class="javax.swing.JLabel" binding="scoreLabel">
+            <constraints>
+              <grid row="2" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+            </constraints>
+            <properties>
+              <font size="18" style="1"/>
+              <foreground color="-997286"/>
+              <horizontalAlignment value="0"/>
+              <text value="Jugador 0 VS 0 Máquina"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <scrollpane id="logsp">
+        <constraints>
+          <grid row="0" column="2" row-span="1" col-span="1" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false">
+            <preferred-size width="320" height="-1"/>
+          </grid>
+        </constraints>
+        <properties>
+          <opaque value="false"/>
+        </properties>
+        <border type="line" title="Log">
+          <title-color color="-2301461"/>
+          <color color="-9538686"/>
+        </border>
+        <children>
+          <component id="log01" class="javax.swing.JTextPane" binding="logArea">
+            <constraints/>
+            <properties>
+              <editable value="false"/>
+              <font name="Monospaced" size="12"/>
+              <text value=""/>
+            </properties>
+          </component>
+        </children>
+      </scrollpane>
+      <component id="chgb1" class="javax.swing.JButton" binding="changeDeckButton">
+        <constraints>
+          <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="160" height="40"/>
+          </grid>
+        </constraints>
+        <properties>
+          <font size="14" style="1"/>
+          <text value="Cambiar mazo"/>
+        </properties>
+      </component>
+      <grid id="actn1" layout-manager="GridLayoutManager" row-count="2" column-count="1" same-size-horizontally="true" same-size-vertically="false" hgap="0" vgap="6">
+        <margin top="0" left="0" bottom="0" right="0"/>
+        <constraints>
+          <grid row="1" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false"/>
+        </constraints>
+        <properties>
+          <opaque value="false"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <component id="atkb1" class="javax.swing.JButton" binding="attackButton">
+            <constraints>
+              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                <preferred-size width="140" height="36"/>
+              </grid>
+            </constraints>
+            <properties>
+              <font size="14" style="1"/>
+              <text value="Atacar"/>
+            </properties>
+          </component>
+          <component id="defb1" class="javax.swing.JButton" binding="defendButton">
+            <constraints>
+              <grid row="1" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="1" indent="0" use-parent-layout="false">
+                <preferred-size width="140" height="36"/>
+              </grid>
+            </constraints>
+            <properties>
+              <font size="14" style="1"/>
+              <text value="Defender"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+      <component id="stab1" class="javax.swing.JButton" binding="startButton">
+        <constraints>
+          <grid row="1" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="0" fill="0" indent="0" use-parent-layout="false">
+            <preferred-size width="180" height="40"/>
+          </grid>
+        </constraints>
+        <properties>
+          <font size="14" style="1"/>
+          <text value="Iniciar duelo"/>
+        </properties>
+      </component>
+    </children>
+  </grid>
+</form>
