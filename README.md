@@ -97,13 +97,21 @@ Algunos casos que tuve en cuenta:
 ## Capturas de pantalla
 
 ### Ventana al iniciar
+Las cartas se están descargando de la API y el log va mostrando el progreso.
+
 ![Ventana al iniciar](docs/inicio.png)
 
 ### Cartas cargadas
+Ya empezó el duelo. Elegí una carta: se ve en **Combate** boca arriba y la de la máquina sigue boca abajo.
+
 ![Cartas cargadas](docs/cartas_cargadas.png)
 
 ### Turno de los jugadores
+Después de **Atacar** se voltean las dos cartas. La carta usada queda gris ("Ya jugada") y el log muestra el resultado y el marcador.
+
 ![Turno de los jugadores](docs/turno_jugadores.png)
 
 ### Fin del duelo
+La máquina llegó a 2 puntos y sale el mensaje con el ganador. **Iniciar duelo** juega la revancha y **Cambiar mazo** trae cartas nuevas.
+
 ![Fin del duelo](docs/fin_del_juego.png)
